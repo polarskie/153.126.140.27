@@ -1,0 +1,226 @@
+<!DOCTYPE>
+<html>
+<head>
+	<style>
+		.inputs
+		{
+			margin: 7px 0;
+		}
+		.outcome-population-table
+		{
+			border: 2px solid blue;
+			margin: 20px auto;
+		}
+		.outcome-population-td
+		{
+			border-left: 1px solid blue;
+			border-bottom: 1px dotted blue;
+			padding: 2px 9px;
+		}
+
+		.outcome-population-tr:first-child > .outcome-population-td
+		{
+			border: 1px solid blue;
+		}
+
+		#start-button
+		{
+			width: 120px;
+			height: 40px;
+			border-radius: 10px;
+			font-size: 20px;
+			font-family: "Arial Black";
+		}
+		.outcome-population-div
+		{
+			text-align: center;
+			padding-top: 30px;
+		}
+	</style>
+</head>
+<body>
+<h2>This is a GA Algorithm simulator for web browser. You can set the population, crossover probability and mutation probability as you like.
+	The routine of the calculation will be shown.</h2>
+<h3>The program is implemented by LI, He. No one should copy it for any use before getting permission at 944232369@qq.com</h3>
+<div class="inputs"><label><span class="label-words">the population volume:</span><input id="pv" type="text" value="5"></label></div>
+<div class="inputs"><label><span class="label-words">the crossover probability:</span><input id="cp" type="text" value="0.5"></label></div>
+<div class="inputs"><label><span class="label-words">the mutation probability:</span><input id="mp" type="text" value="0.05"></label></div>
+<button id="start-button">start!</button>
+<div id="outcome"></div>
+</body>
+</html>
+<script>
+	document.getElementById('start-button').onclick = startSimulation;
+
+	//calculate the value of a gene(the gene is store as a array, so we have to cast it to a number)
+	function valueOfIndividual(ind, index, value)
+	{
+		if(index == ind.length)
+		{
+			return value;
+		}
+		return valueOfIndividual(ind, index+1, value*2+ind[index]);
+	}
+
+	//calculate the fitness
+	function fitness(ind)
+	{
+		return valueOfIndividual(ind, 0, 0)*valueOfIndividual(ind, 0, 0);
+	}
+
+	//mutate the gene by probability of mutation. the gene in the list of except will not be mutated(the elite will not be mutated)
+	function mutate(pop, mutationP, except)
+	{
+		for(var i=0;i<pop.length;++i)
+		{
+			if(!except || except.indexOf(i)==-1) {
+				for (var j = 0; j < pop[i].length; ++j) {
+					if (Math.random() < mutationP) {
+						pop[i][j] = 1 - pop[i][j];
+					}
+				}
+			}
+		}
+	}
+
+	//cross over two individual
+	function cross(ind1, ind2, crossP)
+	{
+		for(var i=0;i<ind1.length;++i)
+		{
+			if(Math.random()<crossP)
+			{
+				var temp = ind1[i];
+				ind1[i]=ind2[i];
+				ind2[i]=temp;
+			}
+		}
+	}
+
+	//find a individual by tournament
+	function tournament(pop)
+	{
+		var ind1 = pop[Math.floor(Math.random()*pop.length)];
+		var ind2 = pop[Math.floor(Math.random()*pop.length)];
+		return fitness(ind1)>fitness(ind2)?ind1:ind2;
+	}
+
+	//find the elite one
+	function elite(pop)
+	{
+		var temp = pop[0];
+		for(var i=0;i<pop.length;++i)
+		{
+			if(fitness(pop[i])>fitness(temp))
+			{
+				temp = pop[i];
+			}
+		}
+		return temp;
+	}
+
+	//generate the new population from the old one, cross over and mutation are used
+	function repopulate(pop, crossP, mutateP)
+	{
+		var tempPop=[];
+		for(var i=0;i<(pop.length-1)/2;++i)
+		{
+			var temp1 = tournament(pop);
+			var temp2 = temp1;
+			while(temp2==temp1) {
+				temp2 = tournament(pop);
+			}
+			temp1 =temp1.slice();
+			temp2=temp2.slice();
+			cross(temp1, temp2, crossP);
+			tempPop[i*2] = temp1;
+			tempPop[i*2+1] = temp2;
+		}
+		tempPop[tempPop.length] = elite(pop);
+		mutate(tempPop, mutateP, [tempPop.length-1]);
+		return tempPop;
+	}
+
+	//randomly generate a population of pn size
+	function generatePopulation(pn)
+	{
+		var population = [];
+		for(var i=0;i<pn;++i)
+		{
+			var individual = [];
+			for(var j=0;j<5;++j)
+			{
+				individual[j]=Math.round(Math.random());
+			}
+			population[i]=individual;
+		}
+		return population;
+	}
+
+	//this is function print the population into a table
+	var printArea = document.getElementById('outcome');
+	function printPopulation(pop, title)
+	{
+		var div = document.createElement('div');
+		div.className = 'outcome-population-div';
+		var h2 = document.createElement('h2');
+		h2.innerHTML = title;
+		div.appendChild(h2);
+		var table = document.createElement('table');
+		table.className = 'outcome-population-table';
+		var tr = document.createElement('tr');
+		tr.className = 'outcome-population-tr';
+		table.appendChild(tr);
+		var colNames = ['NO.', 'GENE', 'FITNESS'];
+		for(var i=0;i<colNames.length;++i)
+		{
+			var td = document.createElement('td');
+			td.innerHTML = colNames[i];
+			td.className = 'outcome-population-td';
+			tr.appendChild(td);
+		}
+		for(var j=0;j<pop.length;++j)
+		{
+			tr = document.createElement('tr');
+			tr.className = 'outcome-population-tr';
+			table.appendChild(tr);
+			td = document.createElement('td');
+			td.innerHTML = (j+1).toString();
+			td.className = 'outcome-population-td';
+			tr.appendChild(td);
+			td = document.createElement('td');
+			td.innerHTML = pop[j].toString();
+			td.className = 'outcome-population-td';
+			tr.appendChild(td);
+			td = document.createElement('td');
+			td.innerHTML = (fitness(pop[j])).toString();
+			td.className = 'outcome-population-td';
+			tr.appendChild(td);
+		}
+		div.appendChild(table);
+		document.getElementById('outcome').appendChild(div);
+	}
+
+	//the main procedure
+	function startSimulation()
+	{
+		//clean out the last time output
+		document.getElementById('outcome').innerHTML = '';
+		//get user's input
+		var populationVolume = parseInt(document.getElementById('pv').value);
+		var crossoverProbability = parseFloat(document.getElementById('cp').value);
+		var mutationProbability = parseFloat(document.getElementById('mp').value);
+		//generate the original population for GA algorithm
+		var population = generatePopulation(populationVolume);
+		//print the original population out
+		printPopulation(population, 'original population');
+		//run a 10 generation search for optimal solution
+		for(var i=0;i<10;i++) {
+			//repopulate the population
+			population = repopulate(population, crossoverProbability, mutationProbability);
+			//print the repopulated outcome
+			printPopulation(population, i+1+'th generation');
+		}
+	}
+
+</script>
